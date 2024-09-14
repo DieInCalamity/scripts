@@ -1,6 +1,7 @@
 -- Services
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Create a ScreenGui for the ESP GUI
@@ -18,6 +19,7 @@ local FlyButton = Instance.new("TextButton")
 local WalkSpeedSlider = Instance.new("TextButton")
 local JumpPowerSlider = Instance.new("TextButton")
 local LongJumpButton = Instance.new("TextButton")
+local SpinButton = Instance.new("TextButton")
 
 -- Setup ScreenGui
 ScreenGui.Parent = game.CoreGui
@@ -240,4 +242,34 @@ end)
 MiscTabButton.MouseButton1Click:Connect(function()
     MiscFrame.Visible = true
     ESPFrame.Visible = false
+end)
+
+-- Spin Functionality
+local spinning = false
+
+local function Spin()
+    local Character = LocalPlayer.Character
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+    -- Spin while spinning is enabled
+    while spinning do
+        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0) -- Adjust the rotation speed
+        RunService.Heartbeat:Wait() -- Run every frame
+    end
+end
+
+-- Create Spin button
+SpinButton.Size = UDim2.new(0, 200, 0, 50)
+SpinButton.Position = UDim2.new(0, 50, 0, 260)
+SpinButton.Text = "Spin: OFF"
+SpinButton.Parent = MiscFrame
+
+SpinButton.MouseButton1Click:Connect(function()
+    spinning = not spinning
+    SpinButton.Text = "Spin: " .. (spinning and "ON" or "OFF")
+
+    if spinning then
+        -- Start the spin
+        coroutine.wrap(Spin)()
+    end
 end)
