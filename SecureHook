@@ -102,7 +102,7 @@ FunTab:AddButton({
 })
 
 FunTab:AddButton({
-    Name = "Kill",
+    Name = "Kill/Reset",
     Default = false,
     Callback = function(Value)
 		game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
