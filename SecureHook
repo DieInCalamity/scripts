@@ -1,0 +1,167 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+-- Create Main Window
+local Window = OrionLib:MakeWindow({
+    Name = "SecureHook",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "Config"
+})
+
+-- Create Misc Tab
+local MiscTab = Window:MakeTab({
+    Name = "Misc",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Create Fun Tab
+local FunTab = Window:MakeTab({
+    Name = "Fun",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Create Fun Tab
+local HubTab = Window:MakeTab({
+    Name = "Hub",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- WalkSpeed Slider
+MiscTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 100,
+    Default = 16,
+    Color = Color3.fromRGB(255, 0, 0),
+    Increment = 4,
+    ValueName = "Speed",
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+    end    
+})
+
+-- JumpPower Slider
+MiscTab:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 200,
+    Default = 50,
+    Color = Color3.fromRGB(0, 255, 0),
+    Increment = 10,
+    ValueName = "Power",
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+    end    
+})
+
+-- Spinbot Toggle
+MiscTab:AddToggle({
+    Name = "Spinbot",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            _G.Spinbot = true
+            while _G.Spinbot do
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame =
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(30), 0)
+                wait(0.1)
+            end
+        else
+            _G.Spinbot = false
+        end
+    end    
+})
+
+-- BHop ComboBox
+MiscTab:AddDropdown({
+    Name = "BHop Method",
+    Default = "WalkSpeed",
+    Options = {"WalkSpeed", "Force"},
+    Callback = function(Value)
+		_G.BhopMethod = Value
+    end    
+})
+
+FunTab:AddTextbox({
+    Name = "Reason",
+    Default = false,
+    Callback = function(Value)
+		_G.KickReason = Value
+	end
+})
+
+FunTab:AddButton({
+    Name = "Kick",
+    Default = false,
+    Callback = function(Value)
+		game.Players.LocalPlayer:kick(_G.KickReason)
+	end
+})
+
+FunTab:AddButton({
+    Name = "Kill",
+    Default = false,
+    Callback = function(Value)
+		game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
+	end
+})
+
+HubTab:AddButton({
+    Name = "Nameless Admin",
+    Default = false,
+    Callback = function(Value)
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/FilteringEnabled/NamelessAdmin/main/Source'))()
+	end
+})
+
+HubTab:AddButton({
+    Name = "Infinite Yield",
+    Default = false,
+    Callback = function(Value)
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+	end
+})
+
+-- BHop Toggle
+MiscTab:AddToggle({
+    Name = "BHop",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            _G.BHopEnabled = true
+            local humanoid = game.Players.LocalPlayer.Character.Humanoid
+
+            -- WalkSpeed BHop Logic
+            if _G.BhopMethod == "WalkSpeed" then
+                while _G.BHopEnabled do
+                    if humanoid.FloorMaterial == Enum.Material.Air then
+                        humanoid.WalkSpeed = 50 -- Increase speed in the air
+                    else
+                        humanoid.WalkSpeed = 16 -- Reset on ground
+                    end
+                    wait(0.05)
+                end
+
+            -- Force BHop Logic
+            elseif _G.BhopMethod == "Force" then
+                while _G.BHopEnabled do
+                    if humanoid.FloorMaterial == Enum.Material.Air then
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        local direction = game.Players.LocalPlayer.Character.Humanoid.MoveDirection * 50
+                        game.Players.LocalPlayer.Character:TranslateBy(direction)
+                    end
+                    wait(0.05)
+                end
+            end
+        else
+            _G.BHopEnabled = false
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Reset WalkSpeed when BHop is turned off
+        end
+    end
+})
+
+-- Initialize Orion GUI
+OrionLib:Init()
