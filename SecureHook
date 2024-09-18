@@ -1,4 +1,4 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+wlocal OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
 -- Create Main Window
 local Window = OrionLib:MakeWindow({
@@ -130,6 +130,14 @@ HubTab:AddButton({
     Default = false,
     Callback = function(Value)
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+	end
+})
+
+HubTab:AddButton({
+    Name = "Catbypasser(key: shadow62)",
+    Default = false,
+    Callback = function(Value)
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/shadow62x/catbypass/main/upfix"))()
 	end
 })
 
