@@ -133,14 +133,6 @@ HubTab:AddButton({
 	end
 })
 
-HubTab:AddButton({
-    Name = "Catbypasser",
-    Default = false,
-    Callback = function(Value)
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/shadow62x/catbypass/main/upfix"))()
-	end
-})
-
 -- BHop Toggle
 MiscTab:AddToggle({
     Name = "BHop",
