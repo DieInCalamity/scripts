@@ -125,6 +125,14 @@ HubTab:AddButton({
 	end
 })
 
+HubTab:AddButton({
+    Name = "Fly V3",
+    Default = false,
+    Callback = function(Value)
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+	end
+})
+
 -- BHop Toggle
 MiscTab:AddToggle({
     Name = "BHop",
