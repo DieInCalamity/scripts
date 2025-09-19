@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
 
 -- // Variables \\ --
 local LocalPlayer = Players.LocalPlayer
@@ -386,7 +387,7 @@ function UpdateFly()
         Settings.Fly.Connection = nil
     end
     
-    if Settings.Fly.Enabled then
+    if Settings.Fly.Enabled and Character and RootPart then
         Settings.Fly.BodyVelocity = Instance.new("BodyVelocity")
         Settings.Fly.BodyVelocity.Velocity = Vector3.new(0, 0, 0)
         Settings.Fly.BodyVelocity.MaxForce = Vector3.new(0, 0, 0)
@@ -447,7 +448,7 @@ end
 function CreatePlayerESP(player)
     local folder = Instance.new("Folder")
     folder.Name = player.Name
-    folder.Parent = game:GetService("CoreGui")
+    folder.Parent = CoreGui
     ESPFolders[player] = folder
     
     -- Name label
@@ -457,6 +458,9 @@ function CreatePlayerESP(player)
     nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     nameLabel.TextStrokeTransparency = 0
     nameLabel.Text = player.Name
+    nameLabel.Size = UDim2.new(0, 200, 0, 20)
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.TextSize = 14
     nameLabel.Visible = Settings.ESP.ShowNames
     nameLabel.Parent = folder
     
@@ -466,6 +470,9 @@ function CreatePlayerESP(player)
     distanceLabel.BackgroundTransparency = 1
     distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     distanceLabel.TextStrokeTransparency = 0
+    distanceLabel.Size = UDim2.new(0, 200, 0, 20)
+    distanceLabel.Font = Enum.Font.SourceSansBold
+    distanceLabel.TextSize = 14
     distanceLabel.Visible = Settings.ESP.ShowDistance
     distanceLabel.Parent = folder
     
@@ -475,6 +482,9 @@ function CreatePlayerESP(player)
     healthLabel.BackgroundTransparency = 1
     healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     healthLabel.TextStrokeTransparency = 0
+    healthLabel.Size = UDim2.new(0, 200, 0, 20)
+    healthLabel.Font = Enum.Font.SourceSansBold
+    healthLabel.TextSize = 14
     healthLabel.Visible = Settings.ESP.ShowHealth
     healthLabel.Parent = folder
 end
@@ -500,7 +510,7 @@ function UpdateESPVisuals()
                 -- Name label
                 local nameLabel = folder:FindFirstChild("Name")
                 if nameLabel then
-                    nameLabel.Position = UDim2.new(0, position.X, 0, position.Y - 30)
+                    nameLabel.Position = UDim2.new(0, position.X, 0, position.Y - 50)
                     nameLabel.Visible = Settings.ESP.ShowNames
                 end
                 
@@ -509,7 +519,7 @@ function UpdateESPVisuals()
                 if distanceLabel then
                     local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
                     distanceLabel.Text = "Distance: " .. math.floor(distance) .. "m"
-                    distanceLabel.Position = UDim2.new(0, position.X, 0, position.Y - 15)
+                    distanceLabel.Position = UDim2.new(0, position.X, 0, position.Y - 30)
                     distanceLabel.Visible = Settings.ESP.ShowDistance
                 end
                 
@@ -517,7 +527,7 @@ function UpdateESPVisuals()
                 local healthLabel = folder:FindFirstChild("Health")
                 if healthLabel and humanoid then
                     healthLabel.Text = "HP: " .. math.floor(humanoid.Health) .. "/" .. math.floor(humanoid.MaxHealth)
-                    healthLabel.Position = UDim2.new(0, position.X, 0, position.Y)
+                    healthLabel.Position = UDim2.new(0, position.X, 0, position.Y - 10)
                     healthLabel.Visible = Settings.ESP.ShowHealth
                 end
             else
@@ -542,7 +552,8 @@ function FindTarget()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             if Settings.Aimbot.TeamCheck and player.Team == LocalPlayer.Team then
-                continue
+                -- Use goto instead of continue for Lua compatibility
+                goto continue
             end
             
             local character = player.Character
@@ -579,6 +590,7 @@ function FindTarget()
                 end
             end
         end
+        ::continue::
     end
     
     return closestTarget
@@ -626,7 +638,9 @@ end)
 
 -- ESP
 RunService.RenderStepped:Connect(function()
-    UpdateESPVisuals()
+    if Settings.ESP.Enabled then
+        UpdateESPVisuals()
+    end
 end)
 
 -- Character Added
