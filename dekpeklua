@@ -1,347 +1,419 @@
---[[
- ВНИМАНИЕ: Этот скрипт предназначен ТОЛЬКО для тестирования античита
- в приватном месте. Не используйте это на публичных серверах.
-]]
+-- // Akiri UI Library \\ --
+local UI = loadstring(game:HttpGet("https://akiri.best/assets/files/gayasf.ui2?key=5y1lxXSfWKhlQkSqhUuFyB8kPp8hsCau"))()
 
+-- // Main Window \\ --
+local Window = UI:Window("Test Cheat Menu", Vector2.new(500, 600))
+
+-- // Tabs \\ --
+local CombatTab = Window:Tab("Combat")
+local MovementTab = Window:Tab("Movement")
+local VisualsTab = Window:Tab("Visuals")
+local SettingsTab = Window:Tab("Settings")
+
+-- // Services \\ --
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 
-local localPlayer = Players.LocalPlayer
-local mouse = localPlayer:GetMouse()
-local camera = Workspace.CurrentCamera
+-- // Variables \\ --
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
--- Настройки
-local settings = {
-    speedHack = {
-        enabled = false,
-        multiplier = 2,
-        originalWalkSpeed = 16,
-        originalJumpPower = 50
+-- // Settings \\ --
+local Settings = {
+    SpeedHack = {
+        Enabled = false,
+        Multiplier = 2,
+        OriginalWalkSpeed = 16,
+        OriginalJumpPower = 50
     },
-    fly = {
-        enabled = false,
-        speed = 100
+    Fly = {
+        Enabled = false,
+        Speed = 100,
+        BodyVelocity = nil,
+        Connection = nil
     },
-    noclip = {
-        enabled = false
+    Noclip = {
+        Enabled = false
     },
-    infiniteJump = {
-        enabled = false,
-        jumpPower = 50
+    InfiniteJump = {
+        Enabled = false,
+        JumpPower = 50
     },
-    autoJump = {
-        enabled = false,
-        checkInterval = 0.1
+    Aimbot = {
+        Enabled = false,
+        FOV = 100,
+        Smoothness = 10,
+        TeamCheck = true,
+        VisibleCheck = true,
+        TargetPart = "Head"
     },
-    aimbot = {
-        enabled = false,
-        fov = 100,
-        smoothness = 10,
-        targetPart = "Head",
-        teamCheck = true,
-        visibleCheck = true,
-        fovCircleVisible = true
-    },
-    esp = {
-        enabled = false,
-        teamCheck = true,
-        showNames = true,
-        showDistance = true,
-        showHealth = true,
-        boxEsp = true,
-        tracerEsp = true
+    ESP = {
+        Enabled = false,
+        TeamCheck = true,
+        ShowNames = true,
+        ShowDistance = true,
+        ShowHealth = true
     }
 }
 
--- Переменные для ESP
-local espFolders = {}
-local espConnections = {}
-
--- Переменные для FOV круга
-local fovCircle
-
--- Получаем персонажа
-local function getCharacter()
-    return localPlayer.Character or localPlayer.CharacterAdded:Wait()
+-- // Get Character \\ --
+local function GetCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
-local character = getCharacter()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local Character = GetCharacter()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
 
--- Сохраняем оригинальные свойства
-settings.speedHack.originalWalkSpeed = humanoid.WalkSpeed
-settings.speedHack.originalJumpPower = humanoid.JumpPower
-settings.infiniteJump.jumpPower = humanoid.JumpPower
+-- // Save Original Properties \\ --
+Settings.SpeedHack.OriginalWalkSpeed = Humanoid.WalkSpeed
+Settings.SpeedHack.OriginalJumpPower = Humanoid.JumpPower
 
--- Создаем FOV круг с помощью ImageLabel
-local function createFovCircle()
-    if fovCircle then
-        fovCircle:Destroy()
+-- // Combat Tab \\ --
+local AimbotSection = CombatTab:Section("Aimbot", "Left")
+local ESPSection = CombatTab:Section("ESP", "Right")
+
+-- Aimbot Toggle
+AimbotSection:Toggle({
+    Title = "Enable Aimbot",
+    Callback = function(State)
+        Settings.Aimbot.Enabled = State
     end
-    
-    -- Создаем прозрачный круг через ImageLabel
-    fovCircle = Instance.new("ImageLabel")
-    fovCircle.Name = "FOVCircle"
-    fovCircle.Visible = settings.aimbot.fovCircleVisible
-    fovCircle.Size = UDim2.new(0, settings.aimbot.fov * 2, 0, settings.aimbot.fov * 2)
-    fovCircle.BackgroundTransparency = 1
-    fovCircle.Image = "rbxassetid://5534554683" -- Прозрачный круг
-    fovCircle.ImageColor3 = Color3.fromRGB(255, 0, 0)
-    fovCircle.ImageTransparency = 0.5
-    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-    fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
-    fovCircle.ZIndex = 10
-    fovCircle.Parent = CoreGui
-end
+})
 
-createFovCircle()
+-- Aimbot FOV
+AimbotSection:Slider({
+    Title = "Aimbot FOV",
+    Default = 100,
+    Min = 10,
+    Max = 500,
+    Callback = function(Value)
+        Settings.Aimbot.FOV = Value
+    end
+})
 
--- Создаем GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TestMenu"
-screenGui.Parent = CoreGui
+-- Aimbot Smoothness
+AimbotSection:Slider({
+    Title = "Smoothness",
+    Default = 10,
+    Min = 1,
+    Max = 30,
+    Callback = function(Value)
+        Settings.Aimbot.Smoothness = Value
+    end
+})
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 600)
-mainFrame.Position = UDim2.new(0, 10, 0.5, -300)
-mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
+-- Team Check
+AimbotSection:Toggle({
+    Title = "Team Check",
+    Default = true,
+    Callback = function(State)
+        Settings.Aimbot.TeamCheck = State
+    end
+})
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-title.Text = "Тестовое меню античита"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Parent = mainFrame
+-- Visible Check
+AimbotSection:Toggle({
+    Title = "Visible Check",
+    Default = true,
+    Callback = function(State)
+        Settings.Aimbot.VisibleCheck = State
+    end
+})
 
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 30, 0, 30)
-toggleButton.Position = UDim2.new(1, -30, 0, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleButton.Text = "-"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.Parent = mainFrame
+-- Target Part
+AimbotSection:Dropdown({
+    Title = "Target Part",
+    List = {"Head", "HumanoidRootPart", "Torso"},
+    Default = "Head",
+    Callback = function(Value)
+        Settings.Aimbot.TargetPart = Value
+    end
+})
 
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, 0, 1, -30)
-contentFrame.Position = UDim2.new(0, 0, 0, 30)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = mainFrame
+-- ESP Toggle
+ESPSection:Toggle({
+    Title = "Enable ESP",
+    Callback = function(State)
+        Settings.ESP.Enabled = State
+        if State then
+            CreateESP()
+        else
+            ClearESP()
+        end
+    end
+})
 
--- Переменные для слайдеров
-local sliders = {}
-local activeSlider = nil
+-- ESP Team Check
+ESPSection:Toggle({
+    Title = "Team Check",
+    Default = true,
+    Callback = function(State)
+        Settings.ESP.TeamCheck = State
+        ClearESP()
+        if Settings.ESP.Enabled then
+            CreateESP()
+        end
+    end
+})
 
--- Функция для создания переключателей
-local function createToggle(name, yPosition, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 0, 40)
-    frame.Position = UDim2.new(0, 10, 0, yPosition)
-    frame.BackgroundTransparency = 1
-    frame.Parent = contentFrame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 60, 0, 30)
-    button.Position = UDim2.new(1, -60, 0.5, -15)
-    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    button.Text = "Выкл"
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Parent = frame
-    
-    button.MouseButton1Click:Connect(function()
-        callback(button)
-    end)
-    
-    return button
-end
+-- Show Names
+ESPSection:Toggle({
+    Title = "Show Names",
+    Default = true,
+    Callback = function(State)
+        Settings.ESP.ShowNames = State
+    end
+})
 
--- Функция для создания слайдера
-local function createSlider(name, yPosition, min, max, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 0, 60)
-    frame.Position = UDim2.new(0, 10, 0, yPosition)
-    frame.BackgroundTransparency = 1
-    frame.Parent = contentFrame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 20)
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 50, 0, 20)
-    valueLabel.Position = UDim2.new(1, -50, 0, 0)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Text = tostring(default)
-    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    valueLabel.Parent = frame
-    
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(1, 0, 0, 20)
-    slider.Position = UDim2.new(0, 0, 0, 30)
-    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    slider.BorderSizePixel = 0
-    slider.Parent = frame
-    
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    fill.Position = UDim2.new(0, 0, 0, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-    fill.BorderSizePixel = 0
-    fill.Parent = slider
-    
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 1, 0)
-    button.BackgroundTransparency = 1
-    button.Text = ""
-    button.Parent = slider
-    
-    local sliderData = {
-        frame = frame,
-        slider = slider,
-        button = button,
-        fill = fill,
-        valueLabel = valueLabel,
-        min = min,
-        max = max,
-        callback = callback,
-        currentValue = default
-    }
-    
-    table.insert(sliders, sliderData)
-    
-    button.MouseButton1Down:Connect(function(x, y)
-        activeSlider = sliderData
-        local percent = math.clamp((x - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-        local value = min + (max - min) * percent
-        value = math.floor(value * 100) / 100
-        fill.Size = UDim2.new(percent, 0, 1, 0)
-        valueLabel.Text = tostring(value)
-        sliderData.currentValue = value
-        callback(value)
-    end)
-    
-    return sliderData
-end
+-- Show Distance
+ESPSection:Toggle({
+    Title = "Show Distance",
+    Default = true,
+    Callback = function(State)
+        Settings.ESP.ShowDistance = State
+    end
+})
 
--- Обработка движения мыши для слайдеров
-UserInputService.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement and activeSlider then
-        local slider = activeSlider.slider
-        local fill = activeSlider.fill
-        local valueLabel = activeSlider.valueLabel
-        local min = activeSlider.min
-        local max = activeSlider.max
+-- Show Health
+ESPSection:Toggle({
+    Title = "Show Health",
+    Default = true,
+    Callback = function(State)
+        Settings.ESP.ShowHealth = State
+    end
+})
+
+-- // Movement Tab \\ --
+local SpeedSection = MovementTab:Section("Speed", "Left")
+local FlySection = MovementTab:Section("Flight", "Right")
+
+-- SpeedHack Toggle
+SpeedSection:Toggle({
+    Title = "Speed Hack",
+    Callback = function(State)
+        Settings.SpeedHack.Enabled = State
+        if State then
+            Humanoid.WalkSpeed = Settings.SpeedHack.OriginalWalkSpeed * Settings.SpeedHack.Multiplier
+            Humanoid.JumpPower = Settings.SpeedHack.OriginalJumpPower * 1.5
+        else
+            Humanoid.WalkSpeed = Settings.SpeedHack.OriginalWalkSpeed
+            Humanoid.JumpPower = Settings.SpeedHack.OriginalJumpPower
+        end
+    end
+})
+
+-- Speed Multiplier
+SpeedSection:Slider({
+    Title = "Speed Multiplier",
+    Default = 2,
+    Min = 1,
+    Max = 5,
+    Callback = function(Value)
+        Settings.SpeedHack.Multiplier = Value
+        if Settings.SpeedHack.Enabled then
+            Humanoid.WalkSpeed = Settings.SpeedHack.OriginalWalkSpeed * Value
+        end
+    end
+})
+
+-- Infinite Jump
+SpeedSection:Toggle({
+    Title = "Infinite Jump",
+    Callback = function(State)
+        Settings.InfiniteJump.Enabled = State
+        if State then
+            Humanoid.JumpPower = Settings.InfiniteJump.JumpPower
+        else
+            Humanoid.JumpPower = Settings.SpeedHack.OriginalJumpPower
+        end
+    end
+})
+
+-- Jump Power
+SpeedSection:Slider({
+    Title = "Jump Power",
+    Default = 50,
+    Min = 10,
+    Max = 100,
+    Callback = function(Value)
+        Settings.InfiniteJump.JumpPower = Value
+        if Settings.InfiniteJump.Enabled then
+            Humanoid.JumpPower = Value
+        end
+    end
+})
+
+-- Noclip
+SpeedSection:Toggle({
+    Title = "Noclip",
+    Callback = function(State)
+        Settings.Noclip.Enabled = State
+        if not State then
+            -- Restore collision
+            for _, part in pairs(Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+})
+
+-- Fly Toggle
+FlySection:Toggle({
+    Title = "Enable Fly",
+    Callback = function(State)
+        Settings.Fly.Enabled = State
+        UpdateFly()
+    end
+})
+
+-- Fly Speed
+FlySection:Slider({
+    Title = "Fly Speed",
+    Default = 100,
+    Min = 50,
+    Max = 200,
+    Callback = function(Value)
+        Settings.Fly.Speed = Value
+    end
+})
+
+-- // Visuals Tab \\ --
+local CameraSection = VisualsTab:Section("Camera", "Left")
+local WorldSection = VisualsTab:Section("World", "Right")
+
+-- FOV Changer
+CameraSection:Slider({
+    Title = "Camera FOV",
+    Default = 70,
+    Min = 30,
+    Max = 120,
+    Callback = function(Value)
+        Camera.FieldOfView = Value
+    end
+})
+
+-- Third Person
+CameraSection:Toggle({
+    Title = "Third Person",
+    Callback = function(State)
+        if State then
+            LocalPlayer.CameraMaxZoomDistance = 50
+            LocalPlayer.CameraMinZoomDistance = 0
+        else
+            LocalPlayer.CameraMaxZoomDistance = 0
+        end
+    end
+})
+
+-- Fullbright
+WorldSection:Toggle({
+    Title = "Fullbright",
+    Callback = function(State)
+        if State then
+            game:GetService("Lighting").GlobalShadows = false
+        else
+            game:GetService("Lighting").GlobalShadows = true
+        end
+    end
+})
+
+-- // Settings Tab \\ --
+local ConfigSection = SettingsTab:Section("Configuration", "Left")
+local InfoSection = SettingsTab:Section("Information", "Right")
+
+-- Unload Cheat
+ConfigSection:Button({
+    Title = "Unload Cheat",
+    Callback = function()
+        -- Restore all settings
+        Settings.SpeedHack.Enabled = false
+        Settings.Fly.Enabled = false
+        Settings.Noclip.Enabled = false
+        Settings.InfiniteJump.Enabled = false
+        Settings.Aimbot.Enabled = false
+        Settings.ESP.Enabled = false
         
-        local mousePos = UserInputService:GetMouseLocation()
-        local percent = math.clamp((mousePos.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-        local value = min + (max - min) * percent
-        value = math.floor(value * 100) / 100
+        -- Restore original properties
+        Humanoid.WalkSpeed = Settings.SpeedHack.OriginalWalkSpeed
+        Humanoid.JumpPower = Settings.SpeedHack.OriginalJumpPower
         
-        fill.Size = UDim2.new(percent, 0, 1, 0)
-        valueLabel.Text = tostring(value)
-        activeSlider.currentValue = value
-        activeSlider.callback(value)
+        -- Restore collision
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        
+        -- Clear ESP
+        ClearESP()
+        
+        -- Destroy fly objects
+        if Settings.Fly.BodyVelocity then
+            Settings.Fly.BodyVelocity:Destroy()
+            Settings.Fly.BodyVelocity = nil
+        end
+        
+        if Settings.Fly.Connection then
+            Settings.Fly.Connection:Disconnect()
+            Settings.Fly.Connection = nil
+        end
+        
+        -- Self destruct UI
+        UI:SelfDestruct()
     end
-end)
+})
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        activeSlider = nil
-    end
-end)
+-- Info
+InfoSection:Label("Cheat Loaded Successfully!")
+InfoSection:Label("F5 - Show/Hide Menu")
+InfoSection:Label("Right Mouse - Aimbot")
 
--- SpeedHack
-local speedToggle = createToggle("SpeedHack", 10, function(button)
-    settings.speedHack.enabled = not settings.speedHack.enabled
-    
-    if settings.speedHack.enabled then
-        humanoid.WalkSpeed = settings.speedHack.originalWalkSpeed * settings.speedHack.multiplier
-        humanoid.JumpPower = settings.speedHack.originalJumpPower * 1.5
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    else
-        humanoid.WalkSpeed = settings.speedHack.originalWalkSpeed
-        humanoid.JumpPower = settings.speedHack.originalJumpPower
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    end
-end)
-
-local speedSlider = createSlider("Множитель скорости", 50, 1, 5, settings.speedHack.multiplier, function(value)
-    settings.speedHack.multiplier = value
-    if settings.speedHack.enabled then
-        humanoid.WalkSpeed = settings.speedHack.originalWalkSpeed * value
-    end
-end)
-
--- Fly
-local flyBodyVelocity
-local flyConnection
-
-local function updateFly()
-    if flyBodyVelocity then
-        flyBodyVelocity:Destroy()
-        flyBodyVelocity = nil
+-- // Functions \\ --
+function UpdateFly()
+    if Settings.Fly.BodyVelocity then
+        Settings.Fly.BodyVelocity:Destroy()
+        Settings.Fly.BodyVelocity = nil
     end
     
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
+    if Settings.Fly.Connection then
+        Settings.Fly.Connection:Disconnect()
+        Settings.Fly.Connection = nil
     end
     
-    if settings.fly.enabled then
-        flyBodyVelocity = Instance.new("BodyVelocity")
-        flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        flyBodyVelocity.MaxForce = Vector3.new(0, 0, 0)
-        flyBodyVelocity.Parent = rootPart
+    if Settings.Fly.Enabled then
+        Settings.Fly.BodyVelocity = Instance.new("BodyVelocity")
+        Settings.Fly.BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        Settings.Fly.BodyVelocity.MaxForce = Vector3.new(0, 0, 0)
+        Settings.Fly.BodyVelocity.Parent = RootPart
 
-        flyConnection = RunService.Heartbeat:Connect(function()
-            if not settings.fly.enabled or not character or not rootPart then
-                if flyBodyVelocity then
-                    flyBodyVelocity:Destroy()
-                    flyBodyVelocity = nil
+        Settings.Fly.Connection = RunService.Heartbeat:Connect(function()
+            if not Settings.Fly.Enabled or not Character or not RootPart then
+                if Settings.Fly.BodyVelocity then
+                    Settings.Fly.BodyVelocity:Destroy()
+                    Settings.Fly.BodyVelocity = nil
                 end
                 return
             end
 
-            local camera = Workspace.CurrentCamera
             local direction = Vector3.new()
             
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                direction = direction + camera.CFrame.LookVector
+                direction = direction + Camera.CFrame.LookVector
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                direction = direction - camera.CFrame.LookVector
+                direction = direction - Camera.CFrame.LookVector
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                direction = direction - camera.CFrame.RightVector
+                direction = direction - Camera.CFrame.RightVector
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                direction = direction + camera.CFrame.RightVector
+                direction = direction + Camera.CFrame.RightVector
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                 direction = direction + Vector3.new(0, 1, 0)
@@ -350,276 +422,33 @@ local function updateFly()
                 direction = direction - Vector3.new(0, 1, 0)
             end
 
-            direction = direction.Unit * settings.fly.speed
-            flyBodyVelocity.Velocity = direction
-            flyBodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+            direction = direction.Unit * Settings.Fly.Speed
+            Settings.Fly.BodyVelocity.Velocity = direction
+            Settings.Fly.BodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
         end)
     end
 end
 
-local flyToggle = createToggle("Полёт", 120, function(button)
-    settings.fly.enabled = not settings.fly.enabled
-    
-    if settings.fly.enabled then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-        updateFly()
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        updateFly()
-    end
-end)
+-- ESP Functions
+local ESPFolders = {}
 
-local flySlider = createSlider("Скорость полёта", 160, 50, 200, settings.fly.speed, function(value)
-    settings.fly.speed = value
-end)
-
--- Noclip
-local noclipToggle = createToggle("Noclip", 230, function(button)
-    settings.noclip.enabled = not settings.noclip.enabled
+function CreateESP()
+    ClearESP()
     
-    if settings.noclip.enabled then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        -- Восстановление коллизии
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not Settings.ESP.TeamCheck or player.Team ~= LocalPlayer.Team then
+                CreatePlayerESP(player)
             end
         end
     end
-end)
+end
 
--- Infinite Jump
-local infiniteJumpToggle = createToggle("Infinite Jump", 290, function(button)
-    settings.infiniteJump.enabled = not settings.infiniteJump.enabled
-    
-    if settings.infiniteJump.enabled then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-        humanoid.JumpPower = settings.infiniteJump.jumpPower
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        humanoid.JumpPower = settings.speedHack.originalJumpPower
-    end
-end)
-
-local infiniteJumpSlider = createSlider("Высота прыжка", 330, 10, 100, settings.infiniteJump.jumpPower, function(value)
-    settings.infiniteJump.jumpPower = value
-    if settings.infiniteJump.enabled then
-        humanoid.JumpPower = value
-    end
-end)
-
--- Auto Jump
-local autoJumpToggle = createToggle("Auto Jump", 400, function(button)
-    settings.autoJump.enabled = not settings.autoJump.enabled
-    
-    if settings.autoJump.enabled then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    end
-end)
-
--- Aimbot
-local aimbotToggle = createToggle("Aimbot", 470, function(button)
-    settings.aimbot.enabled = not settings.aimbot.enabled
-    
-    if settings.aimbot.enabled then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-        if fovCircle then
-            fovCircle.Visible = settings.aimbot.fovCircleVisible
-        end
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        if fovCircle then
-            fovCircle.Visible = false
-        end
-    end
-end)
-
-local aimbotFovSlider = createSlider("FOV Aimbot", 510, 10, 500, settings.aimbot.fov, function(value)
-    settings.aimbot.fov = value
-    if fovCircle then
-        fovCircle.Size = UDim2.new(0, value * 2, 0, value * 2)
-    end
-end)
-
-local aimbotSmoothSlider = createSlider("Сглаживание", 570, 1, 30, settings.aimbot.smoothness, function(value)
-    settings.aimbot.smoothness = value
-end)
-
-local aimbotTeamToggle = createToggle("Проверка команды", 640, function(button)
-    settings.aimbot.teamCheck = not settings.aimbot.teamCheck
-    
-    if settings.aimbot.teamCheck then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    end
-end)
-
-local aimbotVisibleToggle = createToggle("Проверка видимости", 680, function(button)
-    settings.aimbot.visibleCheck = not settings.aimbot.visibleCheck
-    
-    if settings.aimbot.visibleCheck then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    end
-end)
-
-local fovCircleToggle = createToggle("Показ FOV круга", 720, function(button)
-    settings.aimbot.fovCircleVisible = not settings.aimbot.fovCircleVisible
-    
-    if settings.aimbot.fovCircleVisible then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-        if fovCircle then
-            fovCircle.Visible = true
-        end
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        if fovCircle then
-            fovCircle.Visible = false
-        end
-    end
-end)
-
--- ESP
-local espToggle = createToggle("ESP", 780, function(button)
-    settings.esp.enabled = not settings.esp.enabled
-    
-    if settings.esp.enabled then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-        updateEsp()
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        clearEsp()
-    end
-end)
-
-local espTeamToggle = createToggle("ESP проверка команды", 820, function(button)
-    settings.esp.teamCheck = not settings.esp.teamCheck
-    
-    if settings.esp.teamCheck then
-        button.Text = "Вкл"
-        button.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    else
-        button.Text = "Выкл"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    end
-    updateEsp()
-end)
-
--- Кнопка удаления скрипта
-local deleteButton = Instance.new("TextButton")
-deleteButton.Size = UDim2.new(1, -20, 0, 40)
-deleteButton.Position = UDim2.new(0, 10, 0, 880)
-deleteButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-deleteButton.Text = "Удалить скрипт"
-deleteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-deleteButton.Parent = contentFrame
-
-deleteButton.MouseButton1Click:Connect(function()
-    -- Отключаем все функции
-    settings.speedHack.enabled = false
-    settings.fly.enabled = false
-    settings.noclip.enabled = false
-    settings.infiniteJump.enabled = false
-    settings.autoJump.enabled = false
-    settings.aimbot.enabled = false
-    settings.esp.enabled = false
-    
-    -- Восстанавливаем оригинальные настройки
-    if humanoid then
-        humanoid.WalkSpeed = settings.speedHack.originalWalkSpeed
-        humanoid.JumpPower = settings.speedHack.originalJumpPower
-    end
-    
-    -- Восстанавливаем коллизию
-    if character then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
-    end
-    
-    -- Очищаем ESP
-    clearEsp()
-    
-    -- Удаляем FOV круг
-    if fovCircle then
-        fovCircle:Destroy()
-    end
-    
-    -- Удаляем GUI
-    screenGui:Destroy()
-    
-    -- Отключаем все соединения
-    if flyConnection then
-        flyConnection:Disconnect()
-    end
-    if jumpConnection then
-        jumpConnection:Disconnect()
-    end
-    if autoJumpConnection then
-        autoJumpConnection:Disconnect()
-    end
-    if aimbotConnection then
-        aimbotConnection:Disconnect()
-    end
-    if espConnection then
-        espConnection:Disconnect()
-    end
-    
-    print("Скрипт удален!")
-end)
-
--- Функции для ESP
-local function createEsp(player)
-    if player == localPlayer then return end
-    
+function CreatePlayerESP(player)
     local folder = Instance.new("Folder")
     folder.Name = player.Name
-    folder.Parent = screenGui
-    espFolders[player] = folder
-    
-    -- Box ESP
-    local box = Instance.new("Frame")
-    box.Name = "Box"
-    box.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    box.BorderSizePixel = 2
-    box.BorderColor3 = Color3.fromRGB(255, 255, 255)
-    box.BackgroundTransparency = 0.7
-    box.Visible = settings.esp.boxEsp
-    box.Parent = folder
-    
-    -- Tracer ESP
-    local tracer = Instance.new("Frame")
-    tracer.Name = "Tracer"
-    tracer.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    tracer.BorderSizePixel = 0
-    tracer.Visible = settings.esp.tracerEsp
-    tracer.Parent = folder
+    folder.Parent = game:GetService("CoreGui")
+    ESPFolders[player] = folder
     
     -- Name label
     local nameLabel = Instance.new("TextLabel")
@@ -628,7 +457,7 @@ local function createEsp(player)
     nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     nameLabel.TextStrokeTransparency = 0
     nameLabel.Text = player.Name
-    nameLabel.Visible = settings.esp.showNames
+    nameLabel.Visible = Settings.ESP.ShowNames
     nameLabel.Parent = folder
     
     -- Distance label
@@ -637,7 +466,7 @@ local function createEsp(player)
     distanceLabel.BackgroundTransparency = 1
     distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     distanceLabel.TextStrokeTransparency = 0
-    distanceLabel.Visible = settings.esp.showDistance
+    distanceLabel.Visible = Settings.ESP.ShowDistance
     distanceLabel.Parent = folder
     
     -- Health label
@@ -646,80 +475,50 @@ local function createEsp(player)
     healthLabel.BackgroundTransparency = 1
     healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     healthLabel.TextStrokeTransparency = 0
-    healthLabel.Visible = settings.esp.showHealth
+    healthLabel.Visible = Settings.ESP.ShowHealth
     healthLabel.Parent = folder
 end
 
-local function updateEsp()
-    clearEsp()
-    
-    if not settings.esp.enabled then return end
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer then
-            if not settings.esp.teamCheck or player.Team ~= localPlayer.Team then
-                createEsp(player)
-            end
-        end
-    end
-end
-
-local function clearEsp()
-    for _, folder in pairs(espFolders) do
+function ClearESP()
+    for _, folder in pairs(ESPFolders) do
         folder:Destroy()
     end
-    espFolders = {}
+    ESPFolders = {}
 end
 
-local function updateEspVisuals()
-    for player, folder in pairs(espFolders) do
+function UpdateESPVisuals()
+    for player, folder in pairs(ESPFolders) do
         local character = player.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
             local rootPart = character.HumanoidRootPart
             local humanoid = character:FindFirstChild("Humanoid")
             
             -- World to screen space
-            local position, onScreen = camera:WorldToViewportPoint(rootPart.Position)
+            local position, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
             
             if onScreen then
-                -- Box ESP
-                local box = folder:FindFirstChild("Box")
-                if box then
-                    box.Size = UDim2.new(0, 100, 0, 200)
-                    box.Position = UDim2.new(0, position.X - 50, 0, position.Y - 100)
-                    box.Visible = settings.esp.boxEsp
-                end
-                
-                -- Tracer ESP
-                local tracer = folder:FindFirstChild("Tracer")
-                if tracer then
-                    tracer.Size = UDim2.new(0, 2, 0, math.abs(position.Y - camera.ViewportSize.Y))
-                    tracer.Position = UDim2.new(0, position.X - 1, 0, math.min(position.Y, camera.ViewportSize.Y))
-                    tracer.Visible = settings.esp.tracerEsp
-                end
-                
                 -- Name label
                 local nameLabel = folder:FindFirstChild("Name")
                 if nameLabel then
-                    nameLabel.Position = UDim2.new(0, position.X, 0, position.Y - 120)
-                    nameLabel.Visible = settings.esp.showNames
+                    nameLabel.Position = UDim2.new(0, position.X, 0, position.Y - 30)
+                    nameLabel.Visible = Settings.ESP.ShowNames
                 end
                 
                 -- Distance label
                 local distanceLabel = folder:FindFirstChild("Distance")
                 if distanceLabel then
-                    local distance = (rootPart.Position - camera.CFrame.Position).Magnitude
+                    local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
                     distanceLabel.Text = "Distance: " .. math.floor(distance) .. "m"
-                    distanceLabel.Position = UDim2.new(0, position.X, 0, position.Y - 100)
-                    distanceLabel.Visible = settings.esp.showDistance
+                    distanceLabel.Position = UDim2.new(0, position.X, 0, position.Y - 15)
+                    distanceLabel.Visible = Settings.ESP.ShowDistance
                 end
                 
                 -- Health label
                 local healthLabel = folder:FindFirstChild("Health")
                 if healthLabel and humanoid then
                     healthLabel.Text = "HP: " .. math.floor(humanoid.Health) .. "/" .. math.floor(humanoid.MaxHealth)
-                    healthLabel.Position = UDim2.new(0, position.X, 0, position.Y - 80)
-                    healthLabel.Visible = settings.esp.showHealth
+                    healthLabel.Position = UDim2.new(0, position.X, 0, position.Y)
+                    healthLabel.Visible = Settings.ESP.ShowHealth
                 end
             else
                 for _, child in ipairs(folder:GetChildren()) do
@@ -734,31 +533,31 @@ local function updateEspVisuals()
     end
 end
 
--- Aimbot функция
-local function findTarget()
+-- Aimbot Function
+function FindTarget()
     local closestTarget = nil
-    local closestDistance = settings.aimbot.fov
-    local mousePos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    local closestDistance = Settings.Aimbot.FOV
+    local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character then
-            if settings.aimbot.teamCheck and player.Team == localPlayer.Team then
+        if player ~= LocalPlayer and player.Character then
+            if Settings.Aimbot.TeamCheck and player.Team == LocalPlayer.Team then
                 continue
             end
             
             local character = player.Character
-            local targetPart = character:FindFirstChild(settings.aimbot.targetPart)
+            local targetPart = character:FindFirstChild(Settings.Aimbot.TargetPart)
             if targetPart then
-                local position, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+                local position, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
                 
                 if onScreen then
-                    if settings.aimbot.visibleCheck then
-                        -- Raycast для проверки видимости
-                        local rayOrigin = camera.CFrame.Position
+                    if Settings.Aimbot.VisibleCheck then
+                        -- Raycast for visibility check
+                        local rayOrigin = Camera.CFrame.Position
                         local rayDirection = (targetPart.Position - rayOrigin).Unit * 1000
                         local raycastParams = RaycastParams.new()
                         raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-                        raycastParams.FilterDescendantsInstances = {localPlayer.Character}
+                        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
                         local raycastResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
                         
                         if raycastResult and raycastResult.Instance:IsDescendantOf(character) then
@@ -785,60 +584,24 @@ local function findTarget()
     return closestTarget
 end
 
--- Infinite Jump обработчик
-local jumpConnection
-jumpConnection = UserInputService.JumpRequest:Connect(function()
-    if settings.infiniteJump.enabled and humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+-- Mouse moverel function
+function mousemoverel(x, y)
+    local currentPos = UserInputService:GetMouseLocation()
+    UserInputService:SetMouseLocation(currentPos.X + x, currentPos.Y + y)
+end
+
+-- // Connections \\ --
+-- Infinite Jump
+UserInputService.JumpRequest:Connect(function()
+    if Settings.InfiniteJump.Enabled and Humanoid then
+        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- Auto Jump обработчик
-local autoJumpConnection
-autoJumpConnection = RunService.Heartbeat:Connect(function()
-    if settings.autoJump.enabled and humanoid and humanoid.FloorMaterial == Enum.Material.Air then
-        -- Проверяем, есть ли препятствие впереди
-        local camera = Workspace.CurrentCamera
-        local rayOrigin = rootPart.Position
-        local rayDirection = camera.CFrame.LookVector * 5
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-        raycastParams.FilterDescendantsInstances = {character}
-        
-        local raycastResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-        
-        if raycastResult then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
--- Aimbot обработчик
-local aimbotConnection
-aimbotConnection = RunService.RenderStepped:Connect(function()
-    if settings.aimbot.enabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = findTarget()
-        if target then
-            local targetPosition = camera:WorldToViewportPoint(target.Position)
-            local mousePosition = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-            local targetPosition2D = Vector2.new(targetPosition.X, targetPosition.Y)
-            
-            local delta = (targetPosition2D - mousePosition) / settings.aimbot.smoothness
-            mousemoverel(delta.X, delta.Y)
-        end
-    end
-end)
-
--- ESP обработчик
-local espConnection
-espConnection = RunService.RenderStepped:Connect(function()
-    updateEspVisuals()
-end)
-
--- Noclip обработчик
+-- Noclip
 RunService.Stepped:Connect(function()
-    if settings.noclip.enabled and character then
-        for _, part in pairs(character:GetDescendants()) do
+    if Settings.Noclip.Enabled and Character then
+        for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
@@ -846,88 +609,76 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Обработка респавна
-localPlayer.CharacterAdded:Connect(function(newCharacter)
-    character = newCharacter
-    humanoid = character:WaitForChild("Humanoid")
-    rootPart = character:WaitForChild("HumanoidRootPart")
-    
-    -- Сохранение оригинальных свойств
-    settings.speedHack.originalWalkSpeed = humanoid.WalkSpeed
-    settings.speedHack.originalJumpPower = humanoid.JumpPower
-    
-    -- Повторное включение функций если они были активны
-    if settings.speedHack.enabled then
-        humanoid.WalkSpeed = settings.speedHack.originalWalkSpeed * settings.speedHack.multiplier
-        humanoid.JumpPower = settings.speedHack.originalJumpPower * 1.5
-    end
-    
-    if settings.fly.enabled then
-        updateFly()
-    end
-    
-    if settings.infiniteJump.enabled then
-        humanoid.JumpPower = settings.infiniteJump.jumpPower
-    else
-        humanoid.JumpPower = settings.speedHack.originalJumpPower
+-- Aimbot
+RunService.RenderStepped:Connect(function()
+    if Settings.Aimbot.Enabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = FindTarget()
+        if target then
+            local targetPosition = Camera:WorldToViewportPoint(target.Position)
+            local mousePosition = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+            local targetPosition2D = Vector2.new(targetPosition.X, targetPosition.Y)
+            
+            local delta = (targetPosition2D - mousePosition) / Settings.Aimbot.Smoothness
+            mousemoverel(delta.X, delta.Y)
+        end
     end
 end)
 
--- Обработка игроков
+-- ESP
+RunService.RenderStepped:Connect(function()
+    UpdateESPVisuals()
+end)
+
+-- Character Added
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    Character = newCharacter
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    -- Save original properties
+    Settings.SpeedHack.OriginalWalkSpeed = Humanoid.WalkSpeed
+    Settings.SpeedHack.OriginalJumpPower = Humanoid.JumpPower
+    
+    -- Reapply settings if they were enabled
+    if Settings.SpeedHack.Enabled then
+        Humanoid.WalkSpeed = Settings.SpeedHack.OriginalWalkSpeed * Settings.SpeedHack.Multiplier
+        Humanoid.JumpPower = Settings.SpeedHack.OriginalJumpPower * 1.5
+    end
+    
+    if Settings.Fly.Enabled then
+        UpdateFly()
+    end
+    
+    if Settings.InfiniteJump.Enabled then
+        Humanoid.JumpPower = Settings.InfiniteJump.JumpPower
+    end
+    
+    if Settings.ESP.Enabled then
+        CreateESP()
+    end
+end)
+
+-- Player Added/Removed
 Players.PlayerAdded:Connect(function(player)
-    if settings.esp.enabled then
-        if not settings.esp.teamCheck or player.Team ~= localPlayer.Team then
-            createEsp(player)
+    if Settings.ESP.Enabled then
+        if not Settings.ESP.TeamCheck or player.Team ~= LocalPlayer.Team then
+            CreatePlayerESP(player)
         end
     end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    if espFolders[player] then
-        espFolders[player]:Destroy()
-        espFolders[player] = nil
+    if ESPFolders[player] then
+        ESPFolders[player]:Destroy()
+        ESPFolders[player] = nil
     end
 end)
 
--- Скрытие/показ меню
-local menuVisible = true
-toggleButton.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    if menuVisible then
-        contentFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 300, 0, 930)
-        toggleButton.Text = "-"
-    else
-        contentFrame.Visible = false
-        mainFrame.Size = UDim2.new(0, 300, 0, 30)
-        toggleButton.Text = "+"
-    end
-end)
-
--- Горячая клавиша для меню (F5)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.F5 and not gameProcessed then
-        screenGui.Enabled = not screenGui.Enabled
-    end
-end)
-
--- Горячая клавиша для aimbot (правая кнопка мыши)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 and settings.aimbot.enabled then
-        -- Aimbot активируется при зажатии правой кнопки мыши
-    end
-end)
-
--- Инициализация ESP
-updateEsp()
-
-print("Тестовое меню античита загружено!")
-print("F5 - Показать/скрыть меню")
-print("Правая кнопка мыши - активация aimbot")
-print("Кнопка 'Удалить скрипт' - полное удаление")
-
--- Функция для перемещения мыши (эмуляция)
-function mousemoverel(x, y)
-    local currentPos = UserInputService:GetMouseLocation()
-    UserInputService:SetMouseLocation(currentPos.X + x, currentPos.Y + y)
+-- Initialize ESP if enabled
+if Settings.ESP.Enabled then
+    CreateESP()
 end
+
+print("Test Cheat Menu Loaded!")
+print("F5 - Show/Hide Menu")
+print("Right Mouse Button - Aimbot")
