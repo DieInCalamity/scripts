@@ -79,20 +79,24 @@ settings.speedHack.originalWalkSpeed = humanoid.WalkSpeed
 settings.speedHack.originalJumpPower = humanoid.JumpPower
 settings.infiniteJump.jumpPower = humanoid.JumpPower
 
--- Создаем FOV круг
+-- Создаем FOV круг с помощью ImageLabel
 local function createFovCircle()
     if fovCircle then
         fovCircle:Destroy()
     end
     
-    fovCircle = Instance.new("Circle")
+    -- Создаем прозрачный круг через ImageLabel
+    fovCircle = Instance.new("ImageLabel")
+    fovCircle.Name = "FOVCircle"
     fovCircle.Visible = settings.aimbot.fovCircleVisible
-    fovCircle.Radius = settings.aimbot.fov
-    fovCircle.Color = Color3.fromRGB(255, 0, 0)
-    fovCircle.Thickness = 2
-    fovCircle.Transparency = 0.5
-    fovCircle.Filled = false
-    fovCircle.Position = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    fovCircle.Size = UDim2.new(0, settings.aimbot.fov * 2, 0, settings.aimbot.fov * 2)
+    fovCircle.BackgroundTransparency = 1
+    fovCircle.Image = "rbxassetid://5534554683" -- Прозрачный круг
+    fovCircle.ImageColor3 = Color3.fromRGB(255, 0, 0)
+    fovCircle.ImageTransparency = 0.5
+    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    fovCircle.ZIndex = 10
     fovCircle.Parent = CoreGui
 end
 
@@ -447,7 +451,7 @@ end)
 local aimbotFovSlider = createSlider("FOV Aimbot", 510, 10, 500, settings.aimbot.fov, function(value)
     settings.aimbot.fov = value
     if fovCircle then
-        fovCircle.Radius = value
+        fovCircle.Size = UDim2.new(0, value * 2, 0, value * 2)
     end
 end)
 
@@ -582,6 +586,9 @@ deleteButton.MouseButton1Click:Connect(function()
     end
     if aimbotConnection then
         aimbotConnection:Disconnect()
+    end
+    if espConnection then
+        espConnection:Disconnect()
     end
     
     print("Скрипт удален!")
