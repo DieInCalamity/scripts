@@ -2,10 +2,21 @@
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+
+-- Wait for player to be loaded
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
 
 -- Create a ScreenGui for the ESP GUI
 local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AntiCheatTestGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
 local MainFrame = Instance.new("Frame")
 local TabsFrame = Instance.new("Frame")
 local ESPFrame = Instance.new("Frame")
@@ -22,25 +33,37 @@ local LongJumpButton = Instance.new("TextButton")
 local SpinButton = Instance.new("TextButton")
 
 -- Setup ScreenGui
-ScreenGui.Parent = game.CoreGui
+ScreenGui.Parent = game:GetService("CoreGui")
 
 -- Setup MainFrame
 MainFrame.Size = UDim2.new(0, 300, 0, 400)
 MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
 MainFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+MainFrame.BorderSizePixel = 0
 MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
+
+-- Add corner rounding
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
 
 -- Setup TabsFrame
 TabsFrame.Size = UDim2.new(1, 0, 0, 50)
 TabsFrame.Position = UDim2.new(0, 0, 0, 0)
 TabsFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+TabsFrame.BorderSizePixel = 0
 TabsFrame.Parent = MainFrame
+
+local TabsCorner = Instance.new("UICorner")
+TabsCorner.CornerRadius = UDim.new(0, 8)
+TabsCorner.Parent = TabsFrame
 
 -- Setup ESPFrame (for ESP tab content)
 ESPFrame.Size = UDim2.new(1, 0, 1, -50)
 ESPFrame.Position = UDim2.new(0, 0, 0, 50)
 ESPFrame.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+ESPFrame.BorderSizePixel = 0
 ESPFrame.Visible = true
 ESPFrame.Parent = MainFrame
 
@@ -48,67 +71,111 @@ ESPFrame.Parent = MainFrame
 MiscFrame.Size = UDim2.new(1, 0, 1, -50)
 MiscFrame.Position = UDim2.new(0, 0, 0, 50)
 MiscFrame.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+MiscFrame.BorderSizePixel = 0
 MiscFrame.Visible = false
 MiscFrame.Parent = MainFrame
 
 -- Setup the TabButton for ESP
-ESPTabButton.Size = UDim2.new(0, 100, 0, 50)
+ESPTabButton.Size = UDim2.new(0.5, 0, 1, 0)
 ESPTabButton.Position = UDim2.new(0, 0, 0, 0)
 ESPTabButton.Text = "ESP"
+ESPTabButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+ESPTabButton.TextColor3 = Color3.new(1, 1, 1)
+ESPTabButton.BorderSizePixel = 0
 ESPTabButton.Parent = TabsFrame
 
 -- Setup the TabButton for Misc
-MiscTabButton.Size = UDim2.new(0, 100, 0, 50)
-MiscTabButton.Position = UDim2.new(0, 100, 0, 0)
+MiscTabButton.Size = UDim2.new(0.5, 0, 1, 0)
+MiscTabButton.Position = UDim2.new(0.5, 0, 0, 0)
 MiscTabButton.Text = "Misc"
+MiscTabButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+MiscTabButton.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+MiscTabButton.BorderSizePixel = 0
 MiscTabButton.Parent = TabsFrame
 
+-- Button styling function
+local function styleButton(button)
+    button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.BorderSizePixel = 0
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+end
+
 -- Create ESP toggle checkbox
-ToggleESPButton.Size = UDim2.new(0, 200, 0, 50)
-ToggleESPButton.Position = UDim2.new(0, 50, 0, 20)
+ToggleESPButton.Size = UDim2.new(0, 200, 0, 40)
+ToggleESPButton.Position = UDim2.new(0.5, -100, 0, 20)
 ToggleESPButton.Text = "ESP: OFF"
+styleButton(ToggleESPButton)
 ToggleESPButton.Parent = ESPFrame
 
 local ESPEnabled = false
+local ESPHighlights = {}
 
 -- Fly functionality
 local flying = false
+local flyBodyGyro = nil
+local flyBodyVelocity = nil
 
 local function Fly()
     local Character = LocalPlayer.Character
-    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-    local BodyGyro = Instance.new("BodyGyro", HumanoidRootPart)
-    local BodyVelocity = Instance.new("BodyVelocity", HumanoidRootPart)
+    if not Character then return end
+    
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
 
-    BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    BodyGyro.CFrame = HumanoidRootPart.CFrame
+    -- Clean up any existing fly components
+    if flyBodyGyro then flyBodyGyro:Destroy() end
+    if flyBodyVelocity then flyBodyVelocity:Destroy() end
 
-    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    flyBodyGyro = Instance.new("BodyGyro")
+    flyBodyVelocity = Instance.new("BodyVelocity")
+
+    flyBodyGyro.Parent = HumanoidRootPart
+    flyBodyVelocity.Parent = HumanoidRootPart
+
+    flyBodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    flyBodyGyro.CFrame = HumanoidRootPart.CFrame
+
+    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    flyBodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 
     flying = true
 
-    -- Control fly speed
-    while flying do
-        BodyGyro.CFrame = HumanoidRootPart.CFrame
-        BodyVelocity.Velocity = (workspace.CurrentCamera.CFrame.lookVector * 50)
-
-        game:GetService("RunService").Heartbeat:Wait()
-    end
-
-    -- Cleanup
-    BodyGyro:Destroy()
-    BodyVelocity:Destroy()
+    local flyConnection
+    flyConnection = RunService.Heartbeat:Connect(function()
+        if not flying or not Character or not HumanoidRootPart then
+            flyConnection:Disconnect()
+            return
+        end
+        
+        local cam = workspace.CurrentCamera
+        if cam then
+            local lookVector = cam.CFrame.LookVector
+            flyBodyVelocity.Velocity = lookVector * 50
+            flyBodyGyro.CFrame = cam.CFrame
+        end
+    end)
 end
 
 local function StopFly()
     flying = false
+    if flyBodyGyro then 
+        flyBodyGyro:Destroy()
+        flyBodyGyro = nil
+    end
+    if flyBodyVelocity then 
+        flyBodyVelocity:Destroy()
+        flyBodyVelocity = nil
+    end
 end
 
 -- Create Fly button
-FlyButton.Size = UDim2.new(0, 200, 0, 50)
-FlyButton.Position = UDim2.new(0, 50, 0, 20)
+FlyButton.Size = UDim2.new(0, 200, 0, 40)
+FlyButton.Position = UDim2.new(0.5, -100, 0, 20)
 FlyButton.Text = "Fly: OFF"
+styleButton(FlyButton)
 FlyButton.Parent = MiscFrame
 
 FlyButton.MouseButton1Click:Connect(function()
@@ -116,8 +183,14 @@ FlyButton.MouseButton1Click:Connect(function()
         StopFly()
         FlyButton.Text = "Fly: OFF"
     else
-        Fly()
-        FlyButton.Text = "Fly: ON"
+        local success = pcall(function()
+            Fly()
+        end)
+        if success then
+            FlyButton.Text = "Fly: ON"
+        else
+            FlyButton.Text = "Fly: ERROR"
+        end
     end
 end)
 
@@ -125,29 +198,47 @@ end)
 local WalkSpeed = 16
 local JumpPower = 50
 
--- WalkSpeed slider (simple text button as placeholder slider)
-WalkSpeedSlider.Size = UDim2.new(0, 200, 0, 50)
-WalkSpeedSlider.Position = UDim2.new(0, 50, 0, 80)
+-- WalkSpeed slider
+WalkSpeedSlider.Size = UDim2.new(0, 200, 0, 40)
+WalkSpeedSlider.Position = UDim2.new(0.5, -100, 0, 70)
 WalkSpeedSlider.Text = "WalkSpeed: " .. WalkSpeed
+styleButton(WalkSpeedSlider)
 WalkSpeedSlider.Parent = MiscFrame
 
 WalkSpeedSlider.MouseButton1Click:Connect(function()
     WalkSpeed = WalkSpeed + 4
     if WalkSpeed > 100 then WalkSpeed = 16 end
-    LocalPlayer.Character.Humanoid.WalkSpeed = WalkSpeed
+    
+    local Character = LocalPlayer.Character
+    if Character then
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        if Humanoid then
+            Humanoid.WalkSpeed = WalkSpeed
+        end
+    end
+    
     WalkSpeedSlider.Text = "WalkSpeed: " .. WalkSpeed
 end)
 
--- JumpPower slider (simple text button as placeholder slider)
-JumpPowerSlider.Size = UDim2.new(0, 200, 0, 50)
-JumpPowerSlider.Position = UDim2.new(0, 50, 0, 140)
+-- JumpPower slider
+JumpPowerSlider.Size = UDim2.new(0, 200, 0, 40)
+JumpPowerSlider.Position = UDim2.new(0.5, -100, 0, 120)
 JumpPowerSlider.Text = "JumpPower: " .. JumpPower
+styleButton(JumpPowerSlider)
 JumpPowerSlider.Parent = MiscFrame
 
 JumpPowerSlider.MouseButton1Click:Connect(function()
     JumpPower = JumpPower + 10
     if JumpPower > 200 then JumpPower = 50 end
-    LocalPlayer.Character.Humanoid.JumpPower = JumpPower
+    
+    local Character = LocalPlayer.Character
+    if Character then
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        if Humanoid then
+            Humanoid.JumpPower = JumpPower
+        end
+    end
+    
     JumpPowerSlider.Text = "JumpPower: " .. JumpPower
 end)
 
@@ -156,21 +247,28 @@ local longJumpEnabled = false
 
 local function LongJump()
     local Character = LocalPlayer.Character
-    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-    local BodyVelocity = Instance.new("BodyVelocity", HumanoidRootPart)
+    if not Character then return end
+    
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
 
-    BodyVelocity.Velocity = HumanoidRootPart.CFrame.lookVector * 100 -- Increase this multiplier for stronger jumps
-    BodyVelocity.MaxForce = Vector3.new(9e9, 0, 9e9) -- Apply force only on X and Z axis (horizontal movement)
+    local BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.Velocity = HumanoidRootPart.CFrame.lookVector * 100
+    BodyVelocity.MaxForce = Vector3.new(9e9, 0, 9e9)
+    BodyVelocity.Parent = HumanoidRootPart
 
-    -- Long jump effect duration
-    wait(0.3) -- Adjust this duration for longer or shorter jumps
-    BodyVelocity:Destroy()
+    delay(0.3, function()
+        if BodyVelocity then
+            BodyVelocity:Destroy()
+        end
+    end)
 end
 
 -- Create Long Jump button
-LongJumpButton.Size = UDim2.new(0, 200, 0, 50)
-LongJumpButton.Position = UDim2.new(0, 50, 0, 200)
+LongJumpButton.Size = UDim2.new(0, 200, 0, 40)
+LongJumpButton.Position = UDim2.new(0.5, -100, 0, 170)
 LongJumpButton.Text = "Long Jump: OFF"
+styleButton(LongJumpButton)
 LongJumpButton.Parent = MiscFrame
 
 LongJumpButton.MouseButton1Click:Connect(function()
@@ -181,27 +279,36 @@ end)
 -- Hook into UserInputService for jumps
 UserInputService.JumpRequest:Connect(function()
     if longJumpEnabled then
-        LongJump()
+        pcall(LongJump)
     end
 end)
 
 -- Function to create wireframe Box ESP around a player
 local function CreateESP(player)
+    if player == LocalPlayer then return end
+    if not player.Character then return end
+    
+    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
     local highlight = Instance.new("BoxHandleAdornment")
+    highlight.Name = "ESP_" .. player.Name
     highlight.Size = Vector3.new(4, 7, 4)
     highlight.AlwaysOnTop = true
     highlight.ZIndex = 10
-    highlight.Transparency = 0.8 -- Makes it wireframe-like by being more transparent
-    highlight.Adornee = player.Character:WaitForChild("HumanoidRootPart")
-    highlight.Parent = player.Character:WaitForChild("HumanoidRootPart")
+    highlight.Transparency = 0.8
+    highlight.Color3 = Color3.new(1, 0, 0) -- Red color
+    highlight.Adornee = humanoidRootPart
+    highlight.Parent = humanoidRootPart
+    
+    ESPHighlights[player] = highlight
 end
 
 -- Function to remove ESP from a player
 local function RemoveESP(player)
-    for _, obj in pairs(player.Character:WaitForChild("HumanoidRootPart"):GetChildren()) do
-        if obj:IsA("BoxHandleAdornment") then
-            obj:Destroy()
-        end
+    if ESPHighlights[player] then
+        ESPHighlights[player]:Destroy()
+        ESPHighlights[player] = nil
     end
 end
 
@@ -210,58 +317,103 @@ local function ToggleESP()
     ESPEnabled = not ESPEnabled
     ToggleESPButton.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if ESPEnabled then
+    if ESPEnabled then
+        -- Add ESP to all existing players
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
                 CreateESP(player)
-            else
-                RemoveESP(player)
             end
+            -- Listen for new characters
+            player.CharacterAdded:Connect(function(character)
+                if ESPEnabled then
+                    wait(1) -- Wait for character to fully load
+                    CreateESP(player)
+                end
+            end)
         end
+        
+        -- Listen for new players
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function(character)
+                if ESPEnabled then
+                    wait(1)
+                    CreateESP(player)
+                end
+            end)
+        end)
+    else
+        -- Remove ESP from all players
+        for player, _ in pairs(ESPHighlights) do
+            RemoveESP(player)
+        end
+        ESPHighlights = {}
     end
 end
 
 -- Toggle ESP when the button is clicked
 ToggleESPButton.MouseButton1Click:Connect(function()
-    ToggleESP()
+    pcall(ToggleESP)
 end)
 
 -- Keybind to toggle the menu (left Ctrl)
-UserInputService.InputBegan:Connect(function(input)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.LeftControl then
         MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
 -- Set ESPFrame and MiscFrame visibility based on tab click
-ESPTabButton.MouseButton1Click:Connect(function()
+local function switchToESP()
     ESPFrame.Visible = true
     MiscFrame.Visible = false
-end)
+    ESPTabButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    MiscTabButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+end
 
-MiscTabButton.MouseButton1Click:Connect(function()
-    MiscFrame.Visible = true
+local function switchToMisc()
     ESPFrame.Visible = false
-end)
+    MiscFrame.Visible = true
+    MiscTabButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    ESPTabButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+end
+
+ESPTabButton.MouseButton1Click:Connect(switchToESP)
+MiscTabButton.MouseButton1Click:Connect(switchToMisc)
 
 -- Spin Functionality
 local spinning = false
+local spinConnection = nil
 
 local function Spin()
     local Character = LocalPlayer.Character
-    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    if not Character then return end
+    
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
 
-    -- Spin while spinning is enabled
-    while spinning do
-        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0) -- Adjust the rotation speed
-        RunService.Heartbeat:Wait() -- Run every frame
+    if spinConnection then
+        spinConnection:Disconnect()
     end
+    
+    spinConnection = RunService.Heartbeat:Connect(function()
+        if not spinning or not Character or not HumanoidRootPart then
+            if spinConnection then
+                spinConnection:Disconnect()
+                spinConnection = nil
+            end
+            return
+        end
+        
+        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(30), 0)
+    end)
 end
 
 -- Create Spin button
-SpinButton.Size = UDim2.new(0, 200, 0, 50)
-SpinButton.Position = UDim2.new(0, 50, 0, 260)
+SpinButton.Size = UDim2.new(0, 200, 0, 40)
+SpinButton.Position = UDim2.new(0.5, -100, 0, 220)
 SpinButton.Text = "Spin: OFF"
+styleButton(SpinButton)
 SpinButton.Parent = MiscFrame
 
 SpinButton.MouseButton1Click:Connect(function()
@@ -269,7 +421,34 @@ SpinButton.MouseButton1Click:Connect(function()
     SpinButton.Text = "Spin: " .. (spinning and "ON" or "OFF")
 
     if spinning then
-        -- Start the spin
-        coroutine.wrap(Spin)()
+        pcall(Spin)
+    else
+        if spinConnection then
+            spinConnection:Disconnect()
+            spinConnection = nil
+        end
+    end
+end)
+
+-- Cleanup on script termination
+local function cleanup()
+    StopFly()
+    spinning = false
+    if spinConnection then
+        spinConnection:Disconnect()
+    end
+    for player, _ in pairs(ESPHighlights) do
+        RemoveESP(player)
+    end
+end
+
+-- Connect cleanup to player leaving
+game:GetService("UserInputService").WindowFocusReleased:Connect(function()
+    cleanup()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        cleanup()
     end
 end)
